@@ -11,7 +11,7 @@ const quest1 = [{
   type: 'list',
   name: 'startQuestion',
   message: 'What would you like to do?',
-  choices: ['Viev All Employees', 'View All Roles', 'View All Departments', 'Add Employee', 'Add Role', 'Add Department', 'Update Employee Role']
+  choices: ['Viev All Employees', 'View All Roles', 'View All Departments', 'Add Employee', 'Add Role', 'Add Department', 'Update Employee Role', 'Delete emloyee', 'Delete role', 'Delete department']
 }];
 
 async function main() {
@@ -23,9 +23,13 @@ async function main() {
       database: 'emploees_db'
     });
     console.log('Connected to the employees_db');
-    const [sqlAll] = await db.query(`SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name, role.salary 
-    FROM department JOIN role ON department.id = role.department_id 
-    JOIN employee ON role.id = employee.role_id
+    const [sqlAll] = await db.query(`SELECT employee.id, employee.first_name, employee.last_name, 
+    role.title, department.name, role.salary, 
+    CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+    FROM department 
+    JOIN role ON department.id = role.department_id 
+    JOIN employee ON role.id = employee.role_id 
+    LEFT JOIN employee m ON employee.manager_id = m.id
     ORDER BY employee.id`);
     const [sqlDep] = await db.query(`SELECT * FROM department ORDER BY id`);
     const [sqlRole] = await db.query(`SELECT * FROM role ORDER BY id`);
@@ -36,21 +40,39 @@ async function main() {
       .then((answers) => {
         if (answers.startQuestion === 'Viev All Employees') {
           console.log('Employees:');
-          console.table(sqlAll);
+          const employeeTable = sqlAll.map(row => ({
+            'id': row.id,
+            'First Name': row.first_name,
+            'Last Name': row.last_name,
+            'Role': row.title,
+            'Department': row.name,
+            'Salary': row.salary,
+            'Manager': row.manager_name
+          }));
+          console.table(employeeTable, ['id', 'First Name', 'Last Name', 'Role', 'Department', 'Salary', 'Manager'])
           restart();
         } else if (answers.startQuestion === 'View All Roles') {
           console.log('Roles:');
-          console.table(sqlRole);
+          const roleTable = sqlRole.map(row => ({
+            'id': row.id,
+            'Role Name': row.title,
+            'Salary': row.salary,
+            'Department': row.department_id
+          }));
+          console.table(roleTable);
           restart();
         } else if (answers.startQuestion === 'View All Departments') {
           console.log('Departments:');
-          console.table(sqlDep);
+          const departmentTable = sqlDep.map(row => ({
+            'id': row.id,
+            'Department Name': row.name
+          }));
+          console.table(departmentTable);
           restart();
         } else if (answers.startQuestion === 'Add Employee') {
           roles = [];
           empId = '';
           roleId = '';
-
           for (let i = 0; i < sqlRole.length; i++) {
             roles.push(sqlRole[i].title)
           };
@@ -173,6 +195,75 @@ async function main() {
               console.log("Employee's role updated");
               restart();
             })
+        } else if (answers.startQuestion === 'Delete emloyee') {
+          employees = [];
+          empId = '';
+          for (let i = 0; i < sqlEmpl.length; i++) {
+            employees.push(sqlEmpl[i].first_name + ' ' + sqlEmpl[i].last_name)
+          };
+          inquirer
+            .prompt([{
+              type: 'list',
+              name: 'deleteEmployee',
+              message: "Which employee do you want delete?",
+              choices: employees
+            }])
+            .then((answers) => {
+              for (let i = 0; i < sqlEmpl.length; i++) {
+                if (answers.deleteEmployee === sqlEmpl[i].first_name + ' ' + sqlEmpl[i].last_name) {
+                  empId = sqlEmpl[i].id;
+                }
+              };
+              db.query(`DELETE FROM employee WHERE id = ?`, [empId]);
+              console.log("Employee deleted");
+              restart();
+            })
+        } else if (answers.startQuestion === 'Delete role') {
+          roles = [];
+          roleId = '';
+          for (let i = 0; i < sqlRole.length; i++) {
+            roles.push(sqlRole[i].title)
+          };
+          inquirer
+            .prompt([{
+              type: 'list',
+              name: 'deleteRole',
+              message: "Which role do you want delete?",
+              choices: roles
+            }])
+            .then((answers) => {
+              for (let i = 0; i < sqlRole.length; i++) {
+                if (answers.deleteRole === sqlRole[i].title) {
+                  roleId = sqlRole[i].id;
+                }
+              };
+              db.query(`DELETE FROM role WHERE id = ?`, [roleId]);
+              console.log("Role deleted");
+              restart();
+            })
+        } else if (answers.startQuestion === 'Delete department') {
+          departments = [];
+          depId = '';
+          for (let i = 0; i < sqlDep.length; i++) {
+            departments.push(sqlDep[i].name)
+          };
+          inquirer
+            .prompt([{
+              type: 'list',
+              name: 'deleteDep',
+              message: "Which department do you want delete?",
+              choices: departments
+            }])
+            .then((answers) => {
+              for (let i = 0; i < sqlDep.length; i++) {
+                if (answers.deleteDep === sqlDep[i].name) {
+                  depId = sqlDep[i].id;
+                }
+              };
+              db.query(`DELETE FROM department WHERE id = ?`, [depId]);
+              console.log("Department deleted");
+              restart();
+            })
         }
       })
   } catch (error) {
@@ -182,7 +273,7 @@ async function main() {
 
 function restart() {
   main();
-}
+};
 
 main();
 
