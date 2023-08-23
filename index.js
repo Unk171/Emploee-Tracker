@@ -23,16 +23,24 @@ async function main() {
       database: 'emploees_db'
     });
     console.log('Connected to the employees_db');
-    const [sqlAll] = await db.query(`SELECT employee.id, employee.first_name, employee.last_name, 
-    role.title, department.name, role.salary, 
-    CONCAT(m.first_name, ' ', m.last_name) AS manager_name
-    FROM department 
-    JOIN role ON department.id = role.department_id 
-    JOIN employee ON role.id = employee.role_id 
-    LEFT JOIN employee m ON employee.manager_id = m.id
-    ORDER BY employee.id`);
+    const [sqlAll] = await db.query(`SELECT
+    e.id AS employee_id,
+    e.first_name,
+    e.last_name,
+    IFNULL(r.title, 'No Role') AS role_title,
+    IFNULL(d.name, 'No Department') AS department_name,
+    IFNULL(r.salary, 0.00) AS salary,
+    CONCAT(IFNULL(m.first_name, 'No'), ' ', IFNULL(m.last_name, 'Manager')) AS manager_name
+    FROM employee e
+    LEFT JOIN role r ON e.role_id = r.id
+    LEFT JOIN department d ON r.department_id = d.id
+    LEFT JOIN employee m ON e.manager_id = m.id
+    ORDER BY e.id;`);
     const [sqlDep] = await db.query(`SELECT * FROM department ORDER BY id`);
-    const [sqlRole] = await db.query(`SELECT * FROM role ORDER BY id`);
+    const [sqlRole] = await db.query(`SELECT id, title, salary,
+    IFNULL(department_id, 'No Department') AS department_id
+    FROM role
+    ORDER BY id;`);
     const [sqlEmpl] = await db.query(`SELECT * FROM employee ORDER BY id`);
 
     inquirer
@@ -40,16 +48,17 @@ async function main() {
       .then((answers) => {
         if (answers.startQuestion === 'Viev All Employees') {
           console.log('Employees:');
-          const employeeTable = sqlAll.map(row => ({
-            'id': row.id,
-            'First Name': row.first_name,
-            'Last Name': row.last_name,
-            'Role': row.title,
-            'Department': row.name,
-            'Salary': row.salary,
-            'Manager': row.manager_name
-          }));
-          console.table(employeeTable, ['id', 'First Name', 'Last Name', 'Role', 'Department', 'Salary', 'Manager'])
+          // const employeeTable = sqlAll.map(row => ({
+          //   'id': row.id,
+          //   'First Name': row.first_name,
+          //   'Last Name': row.last_name,
+          //   'Role': row.title,
+          //   'Department': row.name,
+          //   'Salary': row.salary,
+          //   'Manager': row.manager_name
+          // }));
+          // console.table(employeeTable, ['id', 'First Name', 'Last Name', 'Role', 'Department', 'Salary', 'Manager'])
+          console.table(sqlAll);
           restart();
         } else if (answers.startQuestion === 'View All Roles') {
           console.log('Roles:');
