@@ -1,21 +1,23 @@
 const inquirer = require('inquirer');
 const mysql = require('mysql2/promise');
+// global variables 
 let employees = [];
 let roles = [];
 let departments = [];
 let empId;
 let roleId;
 let depId;
-
+// main question 
 const quest1 = [{
   type: 'list',
   name: 'startQuestion',
   message: 'What would you like to do?',
   choices: ['Viev All Employees', 'View All Roles', 'View All Departments', 'Add Employee', 'Add Role', 'Add Department', 'Update Employee Role', 'Delete emloyee', 'Delete role', 'Delete department']
 }];
-
+// function with all programm 
 async function main() {
   try {
+    // connect to db 
     const db = await mysql.createConnection({
       host: 'localhost',
       user: 'root',
@@ -23,6 +25,7 @@ async function main() {
       database: 'emploees_db'
     });
     console.log('Connected to the employees_db');
+    // query for view employees 
     const [sqlAll] = await db.query(`SELECT
     e.id AS employee_id,
     e.first_name,
@@ -46,20 +49,21 @@ async function main() {
     inquirer
       .prompt(quest1)
       .then((answers) => {
+// view employees 
         if (answers.startQuestion === 'Viev All Employees') {
           console.log('Employees:');
-          // const employeeTable = sqlAll.map(row => ({
-          //   'id': row.id,
-          //   'First Name': row.first_name,
-          //   'Last Name': row.last_name,
-          //   'Role': row.title,
-          //   'Department': row.name,
-          //   'Salary': row.salary,
-          //   'Manager': row.manager_name
-          // }));
-          // console.table(employeeTable, ['id', 'First Name', 'Last Name', 'Role', 'Department', 'Salary', 'Manager'])
-          console.table(sqlAll);
+          const customColumnNames = sqlAll.map(row => ({
+            'Employee ID': row.employee_id,
+            'First Name': row.first_name,
+            'Last Name': row.last_name,
+            'Role': row.role_title,
+            'Department': row.department_name,
+            'Salary': row.salary,
+            'Manager': row.manager_name
+          }));
+          console.table(customColumnNames);
           restart();
+// view roles 
         } else if (answers.startQuestion === 'View All Roles') {
           console.log('Roles:');
           const roleTable = sqlRole.map(row => ({
@@ -70,6 +74,7 @@ async function main() {
           }));
           console.table(roleTable);
           restart();
+// view departments 
         } else if (answers.startQuestion === 'View All Departments') {
           console.log('Departments:');
           const departmentTable = sqlDep.map(row => ({
@@ -78,6 +83,7 @@ async function main() {
           }));
           console.table(departmentTable);
           restart();
+// add employee 
         } else if (answers.startQuestion === 'Add Employee') {
           roles = [];
           empId = '';
@@ -123,6 +129,7 @@ async function main() {
               console.log('Employee added');
               restart();
             })
+// add role 
         } else if (answers.startQuestion === 'Add Role') {
           departments = [];
           for (let i = 0; i < sqlDep.length; i++) {
@@ -153,6 +160,7 @@ async function main() {
               console.log('Role added');
               restart();
             })
+// add department 
         } else if (answers.startQuestion === 'Add Department') {
           inquirer
             .prompt([{
@@ -165,6 +173,7 @@ async function main() {
               console.log('Department added');
               restart();
             })
+// update employee role 
         } else if (answers.startQuestion === 'Update Employee Role') {
           roles = [];
           employees = [];
@@ -204,6 +213,7 @@ async function main() {
               console.log("Employee's role updated");
               restart();
             })
+// delete employee 
         } else if (answers.startQuestion === 'Delete emloyee') {
           employees = [];
           empId = '';
@@ -227,6 +237,7 @@ async function main() {
               console.log("Employee deleted");
               restart();
             })
+// delete role 
         } else if (answers.startQuestion === 'Delete role') {
           roles = [];
           roleId = '';
@@ -250,6 +261,7 @@ async function main() {
               console.log("Role deleted");
               restart();
             })
+// delete department
         } else if (answers.startQuestion === 'Delete department') {
           departments = [];
           depId = '';
@@ -279,7 +291,7 @@ async function main() {
     console.error('An error occurred:', error);
   }
 };
-
+// restart function 
 function restart() {
   main();
 };
